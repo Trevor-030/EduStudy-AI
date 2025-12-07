@@ -1,4 +1,4 @@
-import type { Message, MessageType, QuizData, LessonData, InteractiveData } from '../types/chat';
+import type { Message, MessageType } from '../types/chat';
 
 interface VoiceflowResponse {
   type: string;
@@ -14,26 +14,27 @@ interface VoiceflowMessage {
 
 class VoiceflowService {
   private apiKey: string;
-  private projectId: string;
+  private versionId: string;
   private baseUrl = 'https://general-runtime.voiceflow.com';
 
   constructor() {
     this.apiKey = import.meta.env.VITE_VOICEFLOW_API_KEY;
-    this.projectId = import.meta.env.VITE_VOICEFLOW_PROJECT_ID;
+    this.versionId = import.meta.env.VITE_VOICEFLOW_VERSION_ID;
 
-    if (!this.apiKey || !this.projectId) {
-      throw new Error('Voiceflow API key and project ID must be configured in environment variables');
+    if (!this.apiKey || !this.versionId) {
+      throw new Error('Voiceflow API key and version ID must be configured in environment variables');
     }
   }
 
   async sendMessage(message: string, conversationId?: string): Promise<{ messages: Message[]; conversationId: string }> {
     try {
-      const url = `${this.baseUrl}/state/user/${conversationId || 'new'}/interact`;
+      const usedId = conversationId || Date.now().toString();
+      const url = `${this.baseUrl}/state/${this.versionId}/user/${usedId}/interact`;
 
       const requestBody = {
         action: {
           type: 'text',
-          payload: message,
+          payload: { text: message },
         },
         config: {
           tts: false,
@@ -46,19 +47,37 @@ class VoiceflowService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': this.apiKey,
-          'versionID': 'production',
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Voiceflow API error:', response.status, errorText);
         throw new Error(`Voiceflow API error: ${response.status} ${response.statusText}`);
       }
 
       const data: VoiceflowMessage[] = await response.json();
 
-      // Extract conversation ID from response headers if it's a new conversation
-      const newConversationId = response.headers.get('conversation_id') || conversationId || 'new';
+      // Extract conversation ID from response
+      // Voiceflow typically returns conversation ID in response data or headers
+      let newConversationId = usedId;
+
+      // Check if any response item contains conversation info
+      const conversationItem = data.find(item =>
+        item.type === 'conversation' ||
+        item.type === 'session' ||
+        (item.payload && typeof item.payload === 'object' && 'conversationId' in item.payload)
+      );
+
+      if (conversationItem?.payload?.conversationId) {
+        newConversationId = conversationItem.payload.conversationId;
+      } else if (response.headers.get('conversation-id')) {
+        newConversationId = response.headers.get('conversation-id')!;
+      } else if (response.headers.get('x-conversation-id')) {
+        newConversationId = response.headers.get('x-conversation-id')!;
+      }
+
 
       // Process the response to create Message objects
       const messages: Message[] = data
