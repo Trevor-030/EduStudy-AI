@@ -56,7 +56,18 @@ const ChatWindow = ({ isDark, chatId, onChatCreated }: ChatWindowProps) => {
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!content.trim() || !user?.id) return;
+    if (!content.trim()) return;
+    if (!user?.id) {
+      console.error('No user ID available, cannot send message');
+      setMessages((prev) => [...prev, {
+        id: Date.now().toString(),
+        type: 'text',
+        content: 'You must be logged in to send messages.',
+        sender: 'ai',
+        timestamp: new Date(),
+      }]);
+      return;
+    }
 
     let currentChatId = chatId;
 

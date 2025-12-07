@@ -14,22 +14,22 @@ interface VoiceflowMessage {
 
 class VoiceflowService {
   private apiKey: string;
-  private projectId: string;
+  private versionId: string;
   private baseUrl = 'https://general-runtime.voiceflow.com';
 
   constructor() {
     this.apiKey = import.meta.env.VITE_VOICEFLOW_API_KEY;
-    this.projectId = import.meta.env.VITE_VOICEFLOW_PROJECT_ID;
+    this.versionId = import.meta.env.VITE_VOICEFLOW_VERSION_ID;
 
-    if (!this.apiKey || !this.projectId) {
-      throw new Error('Voiceflow API key and project ID must be configured in environment variables');
+    if (!this.apiKey || !this.versionId) {
+      throw new Error('Voiceflow API key and version ID must be configured in environment variables');
     }
   }
 
   async sendMessage(message: string, conversationId?: string): Promise<{ messages: Message[]; conversationId: string }> {
     try {
       const usedId = conversationId || Date.now().toString();
-      const url = `${this.baseUrl}/state/${this.projectId}/user/${usedId}/interact`;
+      const url = `${this.baseUrl}/state/${this.versionId}/user/${usedId}/interact`;
 
       const requestBody = {
         action: {
@@ -46,7 +46,7 @@ class VoiceflowService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': this.apiKey,
         },
         body: JSON.stringify(requestBody),
       });
