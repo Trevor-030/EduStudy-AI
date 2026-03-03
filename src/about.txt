@@ -1,0 +1,15 @@
+ACKNOWLEDGEMENT
+
+This AI agent, its supporting logic, and the structured learning content
+were created and authored by:
+
+Michael Agyenim Boateng Anning
+
+All design decisions, data structuring, and implementation were carried
+out by the above author under the SL framework.
+
+Certain internal methodologies and references associated with SL
+remain confidential and are not publicly disclosed.
+
+© 2026
+All rights reserved.
